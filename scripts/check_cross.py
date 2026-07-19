@@ -1,17 +1,3 @@
-"""
-Controlla l'incrocio tra due EMA su un simbolo/timeframe di Twelve Data
-e invia un messaggio Telegram quando avviene un incrocio (nuovo, non ripetuto).
-
-Configurazione tramite variabili d'ambiente (impostate dal workflow GitHub Actions):
-  TWELVE_DATA_API_KEY   (obbligatoria, secret)
-  TELEGRAM_BOT_TOKEN    (obbligatoria per l'invio, secret)
-  TELEGRAM_CHAT_ID      (obbligatoria per l'invio, secret)
-  SYMBOL                default: EUR/USD
-  INTERVAL              default: 5min   (1min, 5min, 15min, 30min, 45min, 1h, 4h, 1day, ...)
-  FAST_PERIOD           default: 34
-  SLOW_PERIOD           default: 144
-"""
-
 import os
 import sys
 import json
@@ -22,9 +8,10 @@ BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 SYMBOL = os.environ.get("SYMBOL") or "EUR/USD"
-   INTERVAL = os.environ.get("INTERVAL") or "5min"
-   FAST_PERIOD = int(os.environ.get("FAST_PERIOD") or "34")
-   SLOW_PERIOD = int(os.environ.get("SLOW_PERIOD") or "144")
+INTERVAL = os.environ.get("INTERVAL") or "5min"
+FAST_PERIOD = int(os.environ.get("FAST_PERIOD") or "34")
+SLOW_PERIOD = int(os.environ.get("SLOW_PERIOD") or "144")
+
 STATE_DIR = "state"
 STATE_FILE = os.path.join(STATE_DIR, "last_candle.json")
 
