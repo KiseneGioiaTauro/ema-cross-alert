@@ -21,11 +21,10 @@ API_KEY = os.environ.get("TWELVE_DATA_API_KEY")
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-SYMBOL = os.environ.get("SYMBOL", "EUR/USD")
-INTERVAL = os.environ.get("INTERVAL", "5min")
-FAST_PERIOD = int(os.environ.get("FAST_PERIOD", "34"))
-SLOW_PERIOD = int(os.environ.get("SLOW_PERIOD", "144"))
-
+SYMBOL = os.environ.get("SYMBOL") or "EUR/USD"
+   INTERVAL = os.environ.get("INTERVAL") or "5min"
+   FAST_PERIOD = int(os.environ.get("FAST_PERIOD") or "34")
+   SLOW_PERIOD = int(os.environ.get("SLOW_PERIOD") or "144")
 STATE_DIR = "state"
 STATE_FILE = os.path.join(STATE_DIR, "last_candle.json")
 
