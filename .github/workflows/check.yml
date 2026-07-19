@@ -1,0 +1,47 @@
+name: EMA Cross Check
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Esegui controllo incrocio EMA
+        env:
+          TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SYMBOL: ${{ vars.SYMBOL }}
+          INTERVAL: ${{ vars.INTERVAL }}
+          FAST_PERIOD: ${{ vars.FAST_PERIOD }}
+          SLOW_PERIOD: ${{ vars.SLOW_PERIOD }}
+        run: python scripts/check_cross.py
+
+      - name: Salva lo stato se è cambiato
+        run: |
+          if ! git diff --quiet -- state/; then
+            git config user.name "ema-cross-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add state/
+            git commit -m "aggiorna stato ultima candela [skip ci]"
+            git push
+          else
+            echo "Nessun cambiamento di stato da salvare."
+          fi
