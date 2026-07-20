@@ -7,11 +7,25 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - name: Controlla che i secrets siano presenti
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          echo "Lunghezza TELEGRAM_BOT_TOKEN: ${#TELEGRAM_BOT_TOKEN} caratteri"
+          echo "Lunghezza TELEGRAM_CHAT_ID: ${#TELEGRAM_CHAT_ID} caratteri"
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+            echo "::error::TELEGRAM_BOT_TOKEN è vuoto o non impostato"
+          fi
+          if [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::error::TELEGRAM_CHAT_ID è vuoto o non impostato"
+          fi
+
       - name: Invia messaggio di prova
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d chat_id="${TELEGRAM_CHAT_ID}" \
-            -d text="✅ Messaggio di prova — il collegamento funziona!"
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=✅ Messaggio di prova — il collegamento funziona!"
