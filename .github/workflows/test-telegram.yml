@@ -7,18 +7,24 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Controlla che i secrets siano presenti
+      - name: Controlla che i secrets siano validi
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          echo "Lunghezza TELEGRAM_BOT_TOKEN: ${#TELEGRAM_BOT_TOKEN} caratteri"
-          echo "Lunghezza TELEGRAM_CHAT_ID: ${#TELEGRAM_CHAT_ID} caratteri"
-          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
-            echo "::error::TELEGRAM_BOT_TOKEN è vuoto o non impostato"
+          echo "Lunghezza token: ${#TELEGRAM_BOT_TOKEN}"
+          echo "Lunghezza chat id: ${#TELEGRAM_CHAT_ID}"
+          if [[ "$TELEGRAM_BOT_TOKEN" =~ [[:space:]] ]]; then
+            echo "::error::Il token contiene spazi, tab o a capo nascosti"
           fi
-          if [ -z "$TELEGRAM_CHAT_ID" ]; then
-            echo "::error::TELEGRAM_CHAT_ID è vuoto o non impostato"
+          if [[ "$TELEGRAM_CHAT_ID" =~ [[:space:]] ]]; then
+            echo "::error::Il chat id contiene spazi, tab o a capo nascosti"
+          fi
+          if [[ ! "$TELEGRAM_BOT_TOKEN" =~ ^[0-9]+:[A-Za-z0-9_-]+$ ]]; then
+            echo "::error::Il formato del token non è quello atteso (deve essere NUMERO:LETTERE-NUMERI)"
+          fi
+          if [[ ! "$TELEGRAM_CHAT_ID" =~ ^-?[0-9]+$ ]]; then
+            echo "::error::Il chat id deve contenere solo cifre (eventualmente un - iniziale)"
           fi
 
       - name: Invia messaggio di prova
