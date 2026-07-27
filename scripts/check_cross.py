@@ -121,11 +121,9 @@ def main():
     key = f"{SYMBOL}|{INTERVAL}|{FAST_PERIOD}|{SLOW_PERIOD}"
     state = load_state()
     entry = state.get(key)
-if not isinstance(entry, dict):
+    if not isinstance(entry, dict):
         entry = None
-    
-    if entry is not None and not isinstance(entry, dict):
-        entry = None  # formato vecchio non compatibile, lo trattiamo come "nessuno stato salvato"
+
     print(
         f"{SYMBOL} {INTERVAL} | mercato aperto: {market_open} | candela {candle_time} | "
         f"prezzo {price:.5f} | EMA{FAST_PERIOD}={ema_fast[n-1]:.5f} EMA{SLOW_PERIOD}={ema_slow[n-1]:.5f} | "
@@ -135,7 +133,7 @@ if not isinstance(entry, dict):
     if entry is None:
         state[key] = {"time": candle_time, "sign": current_sign}
         save_state(state)
-        print("Prima esecuzione per questa configurazione: verso salvato, nessun avviso.")
+        print("Prima esecuzione (o formato precedente non compatibile): verso salvato, nessun avviso.")
         return
 
     if entry.get("time") == candle_time:
