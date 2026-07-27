@@ -122,6 +122,8 @@ def main():
     state = load_state()
     entry = state.get(key)
 
+    if entry is not None and not isinstance(entry, dict):
+        entry = None  # formato vecchio non compatibile, lo trattiamo come "nessuno stato salvato"
     print(
         f"{SYMBOL} {INTERVAL} | mercato aperto: {market_open} | candela {candle_time} | "
         f"prezzo {price:.5f} | EMA{FAST_PERIOD}={ema_fast[n-1]:.5f} EMA{SLOW_PERIOD}={ema_slow[n-1]:.5f} | "
