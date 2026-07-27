@@ -121,7 +121,9 @@ def main():
     key = f"{SYMBOL}|{INTERVAL}|{FAST_PERIOD}|{SLOW_PERIOD}"
     state = load_state()
     entry = state.get(key)
-
+if not isinstance(entry, dict):
+        entry = None
+    
     if entry is not None and not isinstance(entry, dict):
         entry = None  # formato vecchio non compatibile, lo trattiamo come "nessuno stato salvato"
     print(
