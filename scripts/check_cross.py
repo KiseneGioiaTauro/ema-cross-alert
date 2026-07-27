@@ -43,7 +43,7 @@ def save_state(state):
 
 def send_telegram(text):
     if not BOT_TOKEN or not CHAT_ID:
-        print("Telegram non configurato (manca token o chat id), salto invio:")
+        print("Telegram non configurato, salto invio:")
         print(text)
         return
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -57,15 +57,37 @@ def send_telegram(text):
         print("Eccezione durante invio Telegram:", e)
 
 
+def is_market_open():
+    url = f"https://api.twelvedata.com/quote?symbol={SYMBOL}&apikey={API_KEY}"
+    try:
+        resp = requests.get(url, timeout=15)
+        data = resp.json()
+    except requests.RequestException as e:
+        print("Errore di rete durante il controllo market state:", e)
+        return None
+
+    if "is_market_open" in data:
+        return bool(data["is_market_open"])
+
+    print("Campo is_market_open non presente nella risposta /quote:", data)
+    return None
+
+
 def main():
     if not API_KEY:
-        print("Manca TWELVE_DATA_API_KEY: imposta il secret nel repository GitHub.")
+        print("Manca TWELVE_DATA_API_KEY.")
         sys.exit(1)
+
+    market_open = is_market_open()
+    if market_open is False:
+        print(f"Mercato chiuso per {SYMBOL} in questo momento: nessun controllo effettuato.")
+        return
 
     outputsize = max(SLOW_PERIOD * 4, 300)
     url = (
         "https://api.twelvedata.com/time_series"
-        f"?symbol={SYMBOL}&interval={INTERVAL}&outputsize={outputsize}&apikey={API_KEY}"
+        f"?symbol={SYMBOL}&interval={INTERVAL}&outputsize={outputsize}"
+        f"&timezone=UTC&apikey={API_KEY}"
     )
 
     try:
@@ -91,40 +113,50 @@ def main():
     ema_slow = compute_ema(closes, SLOW_PERIOD)
     n = len(closes)
 
-    diff_prev = ema_fast[n - 2] - ema_slow[n - 2]
     diff_last = ema_fast[n - 1] - ema_slow[n - 1]
     candle_time = times[n - 1]
     price = closes[n - 1]
+    current_sign = 1 if diff_last > 0 else (-1 if diff_last < 0 else 0)
 
     key = f"{SYMBOL}|{INTERVAL}|{FAST_PERIOD}|{SLOW_PERIOD}"
     state = load_state()
-
-    if state.get(key) == candle_time:
-        print(f"Candela {candle_time} già valutata per {key}, nessuna azione.")
-        return
-
-    state[key] = candle_time
-    save_state(state)
+    entry = state.get(key)
 
     print(
-        f"{SYMBOL} {INTERVAL} | candela {candle_time} | prezzo {price:.5f} | "
-        f"EMA{FAST_PERIOD}={ema_fast[n-1]:.5f} EMA{SLOW_PERIOD}={ema_slow[n-1]:.5f}"
+        f"{SYMBOL} {INTERVAL} | mercato aperto: {market_open} | candela {candle_time} | "
+        f"prezzo {price:.5f} | EMA{FAST_PERIOD}={ema_fast[n-1]:.5f} EMA{SLOW_PERIOD}={ema_slow[n-1]:.5f} | "
+        f"verso attuale: {'sopra' if current_sign > 0 else 'sotto' if current_sign < 0 else 'uguale'}"
     )
 
-    if diff_prev <= 0 and diff_last > 0:
-        send_telegram(
-            f"📈 {SYMBOL} ({INTERVAL}): incrocio RIALZISTA\n"
-            f"EMA{FAST_PERIOD} ha superato EMA{SLOW_PERIOD}\n"
-            f"Candela: {candle_time}\nPrezzo: {price:.5f}"
-        )
-    elif diff_prev >= 0 and diff_last < 0:
-        send_telegram(
-            f"📉 {SYMBOL} ({INTERVAL}): incrocio RIBASSISTA\n"
-            f"EMA{FAST_PERIOD} ha rotto sotto EMA{SLOW_PERIOD}\n"
-            f"Candela: {candle_time}\nPrezzo: {price:.5f}"
-        )
+    if entry is None:
+        state[key] = {"time": candle_time, "sign": current_sign}
+        save_state(state)
+        print("Prima esecuzione per questa configurazione: verso salvato, nessun avviso.")
+        return
+
+    if entry.get("time") == candle_time:
+        print(f"Candela {candle_time} già valutata, nessuna azione.")
+        return
+
+    prev_sign = entry.get("sign", 0)
+    state[key] = {"time": candle_time, "sign": current_sign}
+    save_state(state)
+
+    if prev_sign != 0 and current_sign != 0 and prev_sign != current_sign:
+        if current_sign > 0:
+            send_telegram(
+                f"📈 {SYMBOL} ({INTERVAL}): incrocio RIALZISTA\n"
+                f"EMA{FAST_PERIOD} ha superato EMA{SLOW_PERIOD}\n"
+                f"Rilevato alla candela: {candle_time}\nPrezzo: {price:.5f}"
+            )
+        else:
+            send_telegram(
+                f"📉 {SYMBOL} ({INTERVAL}): incrocio RIBASSISTA\n"
+                f"EMA{FAST_PERIOD} ha rotto sotto EMA{SLOW_PERIOD}\n"
+                f"Rilevato alla candela: {candle_time}\nPrezzo: {price:.5f}"
+            )
     else:
-        print("Nessun incrocio su questa candela.")
+        print("Nessun cambio di verso da rilevare.")
 
 
 if __name__ == "__main__":
