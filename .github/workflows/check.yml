@@ -32,6 +32,7 @@ jobs:
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_ID_2: ${{ secrets.TELEGRAM_CHAT_ID_2 }}
           SYMBOL: ${{ vars.SYMBOL }}
           INTERVAL: ${{ vars.INTERVAL }}
           FAST_PERIOD: ${{ vars.FAST_PERIOD }}
@@ -40,6 +41,7 @@ jobs:
           export TWELVE_DATA_API_KEY="$(echo -n "$TWELVE_DATA_API_KEY" | tr -d '[:space:]')"
           export TELEGRAM_BOT_TOKEN="$(echo -n "$TELEGRAM_BOT_TOKEN" | tr -d '[:space:]')"
           export TELEGRAM_CHAT_ID="$(echo -n "$TELEGRAM_CHAT_ID" | tr -d '[:space:]')"
+          export TELEGRAM_CHAT_ID_2="$(echo -n "$TELEGRAM_CHAT_ID_2" | tr -d '[:space:]')"
           python scripts/check_cross.py
 
       - name: Salva lo stato se è cambiato
