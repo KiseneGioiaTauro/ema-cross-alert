@@ -5,7 +5,12 @@ import requests
 
 API_KEY = os.environ.get("TWELVE_DATA_API_KEY")
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+CHAT_IDS = [
+    c for c in [
+        os.environ.get("TELEGRAM_CHAT_ID"),
+        os.environ.get("TELEGRAM_CHAT_ID_2"),
+    ] if c
+]
 
 SYMBOL = os.environ.get("SYMBOL") or "EUR/USD"
 INTERVAL = os.environ.get("INTERVAL") or "5min"
@@ -42,19 +47,20 @@ def save_state(state):
 
 
 def send_telegram(text):
-    if not BOT_TOKEN or not CHAT_ID:
+    if not BOT_TOKEN or not CHAT_IDS:
         print("Telegram non configurato, salto invio:")
         print(text)
         return
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    try:
-        resp = requests.post(url, json={"chat_id": CHAT_ID, "text": text}, timeout=15)
-        if resp.status_code != 200:
-            print("Errore invio Telegram:", resp.status_code, resp.text)
-        else:
-            print("Messaggio Telegram inviato.")
-    except requests.RequestException as e:
-        print("Eccezione durante invio Telegram:", e)
+    for chat_id in CHAT_IDS:
+        try:
+            resp = requests.post(url, json={"chat_id": chat_id, "text": text}, timeout=15)
+            if resp.status_code != 200:
+                print(f"Errore invio Telegram a {chat_id}:", resp.status_code, resp.text)
+            else:
+                print(f"Messaggio Telegram inviato a {chat_id}.")
+        except requests.RequestException as e:
+            print(f"Eccezione durante invio Telegram a {chat_id}:", e)
 
 
 def is_market_open():
@@ -127,7 +133,8 @@ def main():
     print(
         f"{SYMBOL} {INTERVAL} | mercato aperto: {market_open} | candela {candle_time} | "
         f"prezzo {price:.5f} | EMA{FAST_PERIOD}={ema_fast[n-1]:.5f} EMA{SLOW_PERIOD}={ema_slow[n-1]:.5f} | "
-        f"verso attuale: {'sopra' if current_sign > 0 else 'sotto' if current_sign < 0 else 'uguale'}"
+        f"verso attuale: {'sopra' if current_sign > 0 else 'sotto' if current_sign < 0 else 'uguale'} | "
+        f"destinatari: {len(CHAT_IDS)}"
     )
 
     if entry is None:
