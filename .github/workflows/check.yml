@@ -1,8 +1,6 @@
 name: EMA Cross Check
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -11,7 +9,7 @@ permissions:
 concurrency:
   group: ema-cross-check
   cancel-in-progress: false
-  
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -51,7 +49,11 @@ jobs:
             git config user.email "actions@users.noreply.github.com"
             git add state/
             git commit -m "aggiorna stato ultima candela [skip ci]"
-            git push
+            for i in 1 2 3 4 5; do
+              git pull --rebase origin main && git push && break
+              echo "Push fallito, ritento tra 3 secondi..."
+              sleep 3
+            done
           else
             echo "Nessun cambiamento di stato da salvare."
           fi
