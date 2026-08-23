@@ -16,6 +16,8 @@ SYMBOL = os.environ.get("SYMBOL") or "EUR/USD"
 INTERVAL = os.environ.get("INTERVAL") or "5min"
 FAST_PERIOD = int(os.environ.get("FAST_PERIOD") or "34")
 SLOW_PERIOD = int(os.environ.get("SLOW_PERIOD") or "144")
+FAST_SOURCE = (os.environ.get("FAST_SOURCE") or "close").strip().lower()
+SLOW_SOURCE = (os.environ.get("SLOW_SOURCE") or "close").strip().lower()
 
 STATE_DIR = "state"
 STATE_FILE = os.path.join(STATE_DIR, "last_candle.json")
@@ -109,14 +111,21 @@ def main():
 
     values = list(reversed(data["values"]))
     closes = [float(v["close"]) for v in values]
+    opens = [float(v["open"]) for v in values]
     times = [v["datetime"] for v in values]
 
-    if len(closes) < SLOW_PERIOD + 2:
-        print(f"Dati storici insufficienti per EMA {SLOW_PERIOD} (ricevute {len(closes)} candele).")
+    if len(closes) < max(FAST_PERIOD, SLOW_PERIOD) + 2:
+        print(f"Dati storici insufficienti (ricevute {len(closes)} candele).")
         sys.exit(0)
 
-    ema_fast = compute_ema(closes, FAST_PERIOD)
-    ema_slow = compute_ema(closes, SLOW_PERIOD)
+    def series_for(source):
+        return closes if source == "close" else opens
+
+    fast_series = series_for(FAST_SOURCE)
+    slow_series = series_for(SLOW_SOURCE)
+
+    ema_fast = compute_ema(fast_series, FAST_PERIOD)
+    ema_slow = compute_ema(slow_series, SLOW_PERIOD)
     n = len(closes)
 
     diff_last = ema_fast[n - 1] - ema_slow[n - 1]
@@ -124,7 +133,7 @@ def main():
     price = closes[n - 1]
     current_sign = 1 if diff_last > 0 else (-1 if diff_last < 0 else 0)
 
-    key = f"{SYMBOL}|{INTERVAL}|{FAST_PERIOD}|{SLOW_PERIOD}"
+    key = f"{SYMBOL}|{INTERVAL}|{FAST_PERIOD}{FAST_SOURCE}|{SLOW_PERIOD}{SLOW_SOURCE}"
     state = load_state()
     entry = state.get(key)
     if not isinstance(entry, dict):
@@ -132,7 +141,9 @@ def main():
 
     print(
         f"{SYMBOL} {INTERVAL} | mercato aperto: {market_open} | candela {candle_time} | "
-        f"prezzo {price:.5f} | EMA{FAST_PERIOD}={ema_fast[n-1]:.5f} EMA{SLOW_PERIOD}={ema_slow[n-1]:.5f} | "
+        f"prezzo chiusura {price:.5f} | "
+        f"EMA{FAST_PERIOD}({FAST_SOURCE})={ema_fast[n-1]:.5f} "
+        f"EMA{SLOW_PERIOD}({SLOW_SOURCE})={ema_slow[n-1]:.5f} | "
         f"verso attuale: {'sopra' if current_sign > 0 else 'sotto' if current_sign < 0 else 'uguale'} | "
         f"destinatari: {len(CHAT_IDS)}"
     )
@@ -152,17 +163,19 @@ def main():
     save_state(state)
 
     if prev_sign != 0 and current_sign != 0 and prev_sign != current_sign:
+        label_fast = f"EMA{FAST_PERIOD} ({FAST_SOURCE})"
+        label_slow = f"EMA{SLOW_PERIOD} ({SLOW_SOURCE})"
         if current_sign > 0:
             send_telegram(
                 f"📈 {SYMBOL} ({INTERVAL}): incrocio RIALZISTA\n"
-                f"EMA{FAST_PERIOD} ha superato EMA{SLOW_PERIOD}\n"
-                f"Rilevato alla candela: {candle_time}\nPrezzo: {price:.5f}"
+                f"{label_fast} ha superato {label_slow}\n"
+                f"Rilevato alla candela: {candle_time}\nPrezzo chiusura: {price:.5f}"
             )
         else:
             send_telegram(
                 f"📉 {SYMBOL} ({INTERVAL}): incrocio RIBASSISTA\n"
-                f"EMA{FAST_PERIOD} ha rotto sotto EMA{SLOW_PERIOD}\n"
-                f"Rilevato alla candela: {candle_time}\nPrezzo: {price:.5f}"
+                f"{label_fast} ha rotto sotto {label_slow}\n"
+                f"Rilevato alla candela: {candle_time}\nPrezzo chiusura: {price:.5f}"
             )
     else:
         print("Nessun cambio di verso da rilevare.")
