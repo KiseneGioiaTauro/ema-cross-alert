@@ -35,6 +35,8 @@ jobs:
           INTERVAL: ${{ vars.INTERVAL }}
           FAST_PERIOD: ${{ vars.FAST_PERIOD }}
           SLOW_PERIOD: ${{ vars.SLOW_PERIOD }}
+          FAST_SOURCE: ${{ vars.FAST_SOURCE }}
+          SLOW_SOURCE: ${{ vars.SLOW_SOURCE }}
         run: |
           export TWELVE_DATA_API_KEY="$(echo -n "$TWELVE_DATA_API_KEY" | tr -d '[:space:]')"
           export TELEGRAM_BOT_TOKEN="$(echo -n "$TELEGRAM_BOT_TOKEN" | tr -d '[:space:]')"
